@@ -1,58 +1,14 @@
 import sys
 import os
-import requests
-import json
 import logging
 import traceback
+import re
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel,
-    QTextEdit, QPushButton, QMessageBox, QCheckBox, QScrollArea
+    QTextEdit, QPushButton, QMessageBox, QScrollArea
 )
 from PyQt6.QtCore import Qt
-
-import os
-import sys
-from dotenv import load_dotenv
-
-def load_env():
-    # Get folder where the .env file is (next to the executable)
-    if getattr(sys, 'frozen', False):
-        # Running in PyInstaller bundle
-        base_path = os.path.dirname(sys.executable)
-    else:
-        # Running as script
-        base_path = os.path.dirname(os.path.abspath(__file__))
-
-    env_path = os.path.join(base_path, '.env')
-
-    if not os.path.exists(env_path):
-        raise ValueError(f"❌ .env file not found at: {env_path}")
-
-    load_dotenv(dotenv_path=env_path)
-
-    token = os.getenv("HF_API_TOKEN")
-    if not token or token.strip() == "":
-        raise ValueError("❌ Missing Hugging Face API token. Make sure HF_API_TOKEN is set in .env")
-
-    print("✅ HF_API_TOKEN loaded successfully")
-
-    
-# Load environment variables securely
-load_env()
-
-# Fetch Hugging Face API token
-hf_token = os.getenv("HF_API_TOKEN")
-if not hf_token:
-    raise ValueError("Missing Hugging Face API token. Ensure HF_API_TOKEN is set in the .env file.")
-# Ensure the token is valid
-if not hf_token.strip():
-    raise ValueError("Hugging Face API token is empty. Please check your .env file.")
-
-# Set up secure headers
-headers = {
-    "Authorization": f"Bearer {hf_token}"
-}
 
 # Setup logging
 def setup_logging():
@@ -127,7 +83,7 @@ class CareerRecommender(QWidget):
             header.setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px; color: #2c3e50;")
             layout.addWidget(header)
 
-            subtitle = QLabel("Developed as part of BrainWonders Internship | Analyzing 35+ Career Domains")
+            subtitle = QLabel("Developed as part of BrainWonders Internship | Advanced Offline Analysis with 60+ Career Domains")
             subtitle.setStyleSheet("font-size: 12px; color: #7f8c8d; margin-bottom: 15px;")
             layout.addWidget(subtitle)
 
@@ -140,20 +96,16 @@ class CareerRecommender(QWidget):
             self.text_input.setPlaceholderText("Example: I love music and am very creative. I enjoy designing things and have a good eye for aesthetics. I'm interested in technology but I'm not that good at sports...")
             layout.addWidget(self.text_input)
 
-            # Analysis method selection
+            # Analysis method label
             method_label = QLabel("Analysis Method:")
             method_label.setStyleSheet("font-weight: bold; margin-top: 10px;")
             layout.addWidget(method_label)
 
-            self.use_cloud_checkbox = QCheckBox("🌐 Cloud AI Analysis (Recommended - Most Accurate)")
-            self.use_cloud_checkbox.setChecked(True)
-            layout.addWidget(self.use_cloud_checkbox)
-
-            smart_label = QLabel("📊 Smart Rule-Based Analysis (Always available as backup)")
-            smart_label.setStyleSheet("font-size: 11px; color: #7f8c8d; margin-left: 20px;")
+            smart_label = QLabel("🧠 Advanced Offline Analysis Engine (Enhanced Pattern Recognition)")
+            smart_label.setStyleSheet("font-size: 12px; color: #2c3e50; margin-left: 5px; margin-bottom: 10px;")
             layout.addWidget(smart_label)
 
-            self.button = QPushButton("🔍 Get AI Career Recommendations")
+            self.button = QPushButton("🔍 Get Career Recommendations")
             self.button.setStyleSheet("font-weight: bold; padding: 10px; background-color: #3498db; color: white; border: none; border-radius: 5px;")
             self.button.clicked.connect(self.safe_get_recommendations)
             layout.addWidget(self.button)
@@ -276,414 +228,6 @@ class CareerRecommender(QWidget):
         
         return result
 
-    def get_hf_token(self):
-        """Get Hugging Face token from environment variable or file"""
-        # Return the global token that was already loaded and validated
-        return hf_token
-
-    def get_cloud_recommendation(self, user_input):
-        """Get recommendation using free online services and APIs"""
-        try:
-            if logger:
-                logger.info("Starting free cloud recommendation request")
-            
-            # Try free text analysis services as alternatives
-            alternatives = [
-                self.try_free_sentiment_analysis,
-                self.try_keyword_extraction_service,
-                self.try_mock_ai_response
-            ]
-            
-            for alternative in alternatives:
-                try:
-                    result = alternative(user_input)
-                    if result:
-                        return result
-                except Exception as e:
-                    if logger:
-                        logger.warning(f"Alternative service failed: {e}")
-                    continue
-            
-            # If all fail, return None to fall back to smart analysis
-            return None
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Cloud alternatives error: {e}")
-            return None
-
-    def try_free_sentiment_analysis(self, user_input):
-        """Use a simple rule-based sentiment analysis for career matching"""
-        try:
-            if logger:
-                logger.info("Trying free sentiment-based career analysis")
-            
-            # Advanced keyword-to-career mapping with sentiment
-            career_keywords = {
-                'STEM & Research': {
-                    'keywords': ['math', 'science', 'research', 'analysis', 'data', 'experiment', 'study', 'investigate', 'discovery', 'technical', 'engineering', 'technology', 'physics', 'chemistry', 'biology', 'astronomy', 'space', 'cosmos', 'astronaut'],
-                    'weight': 1.0
-                },
-                'Creative & Design': {
-                    'keywords': ['creative', 'design', 'art', 'aesthetic', 'visual', 'imagination', 'artistic', 'innovative', 'music', 'drawing', 'painting', 'fashion', 'architecture'],
-                    'weight': 1.0
-                },
-                'Healthcare & Medicine': {
-                    'keywords': ['health', 'medical', 'medicine', 'doctor', 'nurse', 'therapy', 'healing', 'wellness', 'patient', 'clinical', 'pharmaceutical'],
-                    'weight': 1.0
-                },
-                'Technology & Computing': {
-                    'keywords': ['technology', 'computer', 'programming', 'coding', 'software', 'digital', 'IT', 'development', 'algorithm', 'machine learning', 'AI'],
-                    'weight': 1.0
-                },
-                'Business & Finance': {
-                    'keywords': ['business', 'finance', 'money', 'economics', 'management', 'leadership', 'strategy', 'investment', 'banking', 'accounting'],
-                    'weight': 1.0
-                },
-                'Education & Training': {
-                    'keywords': ['education', 'teaching', 'training', 'learning', 'academic', 'professor', 'instructor', 'curriculum', 'knowledge'],
-                    'weight': 1.0
-                }
-            }
-            
-            # Sentiment modifiers
-            positive_words = ['love', 'passion', 'enjoy', 'fascinated', 'excited', 'dream', 'interested', 'good at', 'talented', 'skilled']
-            negative_words = ['not good', 'bad at', 'hate', 'dislike', 'impossible', 'can\'t', 'unable', 'difficulty', 'struggle']
-            
-            user_lower = user_input.lower()
-            career_scores = {}
-            
-            # Calculate scores for each career category
-            for career, data in career_keywords.items():
-                score = 0
-                matches = []
-                
-                for keyword in data['keywords']:
-                    if keyword in user_lower:
-                        # Check context around the keyword
-                        keyword_pos = user_lower.find(keyword)
-                        context_start = max(0, keyword_pos - 30)
-                        context_end = min(len(user_lower), keyword_pos + len(keyword) + 30)
-                        context = user_lower[context_start:context_end]
-                        
-                        # Apply sentiment weighting
-                        sentiment_multiplier = 1.0
-                        
-                        # Positive sentiment boost
-                        for pos_word in positive_words:
-                            if pos_word in context:
-                                sentiment_multiplier += 0.5
-                                break
-                        
-                        # Negative sentiment penalty
-                        for neg_word in negative_words:
-                            if neg_word in context:
-                                sentiment_multiplier -= 0.7
-                                break
-                        
-                        # Ensure minimum score
-                        sentiment_multiplier = max(0.1, sentiment_multiplier)
-                        
-                        score += data['weight'] * sentiment_multiplier
-                        matches.append(keyword)
-                        
-                        if logger:
-                            logger.debug(f"Career: {career}, Keyword: {keyword}, Sentiment: {sentiment_multiplier:.2f}")
-                
-                if score > 0:
-                    career_scores[career] = {
-                        'score': score,
-                        'matches': matches
-                    }
-            
-            # Generate response if we have good matches
-            if career_scores:
-                sorted_careers = sorted(career_scores.items(), key=lambda x: x[1]['score'], reverse=True)
-                
-                response = "🌐 Advanced Semantic Analysis Results:\n\n"
-                response += "Based on comprehensive text analysis and sentiment detection:\n\n"
-                
-                for i, (career, data) in enumerate(sorted_careers[:3], 1):
-                    confidence = "High" if data['score'] >= 2.0 else "Medium" if data['score'] >= 1.0 else "Moderate"
-                    
-                    response += f"{i}. {career}\n"
-                    response += f"   Confidence Level: {confidence} (Score: {data['score']:.1f})\n"
-                    response += f"   Key Indicators: {', '.join(data['matches'][:4])}\n"
-                    response += f"   Analysis: Strong semantic alignment detected with career-relevant terminology\n\n"
-                
-                response += "💡 **This analysis uses advanced NLP techniques including sentiment analysis and contextual keyword matching.**"
-                
-                return response
-            
-            return None
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Free sentiment analysis failed: {e}")
-            return None
-
-    def try_keyword_extraction_service(self, user_input):
-        """Use advanced keyword extraction for career matching"""
-        try:
-            if logger:
-                logger.info("Trying advanced keyword extraction service")
-            
-            # Extract meaningful phrases and keywords
-            words = user_input.lower().split()
-            
-            # Remove common stop words
-            stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'i', 'am', 'is', 'are', 'have', 'has', 'had', 'this', 'that', 'these', 'those'}
-            meaningful_words = [word for word in words if word not in stop_words and len(word) > 2]
-            
-            # Advanced career domain mapping
-            domain_patterns = {
-                'Aerospace & Engineering': {
-                    'patterns': ['astronaut', 'space', 'cosmos', 'aerospace', 'engineering', 'technical', 'systems'],
-                    'related_fields': ['Mechanical Engineering', 'Aerospace Engineering', 'Systems Engineering', 'Mission Planning', 'Space Technology']
-                },
-                'Mathematical Sciences': {
-                    'patterns': ['math', 'mathematics', 'analytical', 'problem-solving', 'logic', 'calculations'],
-                    'related_fields': ['Data Science', 'Actuarial Science', 'Financial Analysis', 'Research Mathematics', 'Statistical Analysis']
-                },
-                'Scientific Research': {
-                    'patterns': ['science', 'research', 'study', 'investigate', 'discovery', 'experiment', 'analysis'],
-                    'related_fields': ['Research Scientist', 'Laboratory Technician', 'Science Writer', 'Research Coordinator', 'Academic Researcher']
-                },
-                'Technology & Innovation': {
-                    'patterns': ['technology', 'innovation', 'development', 'technical', 'digital', 'computing'],
-                    'related_fields': ['Software Development', 'Technology Consulting', 'Innovation Management', 'Tech Writing', 'Product Development']
-                }
-            }
-            
-            # Match patterns
-            domain_matches = {}
-            for domain, data in domain_patterns.items():
-                score = 0
-                matched_patterns = []
-                
-                for pattern in data['patterns']:
-                    for word in meaningful_words:
-                        if pattern in word or word in pattern:
-                            score += 1
-                            matched_patterns.append(pattern)
-                
-                if score > 0:
-                    domain_matches[domain] = {
-                        'score': score,
-                        'patterns': matched_patterns,
-                        'fields': data['related_fields']
-                    }
-            
-            if domain_matches:
-                sorted_domains = sorted(domain_matches.items(), key=lambda x: x[1]['score'], reverse=True)
-                
-                response = "🔍 Advanced Keyword Extraction Analysis:\n\n"
-                response += "Extracted meaningful career indicators from your profile:\n\n"
-                
-                for i, (domain, data) in enumerate(sorted_domains[:2], 1):
-                    response += f"{i}. {domain}\n"
-                    response += f"   Pattern Matches: {data['score']} key indicators\n"
-                    response += f"   Detected Terms: {', '.join(set(data['patterns']))}\n"
-                    response += f"   Related Career Paths:\n"
-                    
-                    for field in data['fields'][:3]:
-                        response += f"     • {field}\n"
-                    response += "\n"
-                
-                response += "💡 **This analysis uses natural language processing to extract meaningful career indicators from your text.**"
-                
-                return response
-            
-            return None
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Keyword extraction failed: {e}")
-            return None
-
-    def try_mock_ai_response(self, user_input):
-        """Generate a sophisticated mock AI response based on input analysis"""
-        try:
-            if logger:
-                logger.info("Generating sophisticated analysis response")
-            
-            # Analyze input for key themes
-            user_lower = user_input.lower()
-            
-            # Check for specific career-relevant themes
-            themes = {
-                'space_science': ['astronaut', 'space', 'cosmos', 'astronomy', 'aerospace'],
-                'mathematics': ['math', 'mathematical', 'calculations', 'analytical'],
-                'science': ['science', 'scientific', 'research', 'discovery'],
-                'health_limitations': ['health', 'medical', 'impossible', 'conditions'],
-                'passion': ['passion', 'dream', 'love', 'fascinated', 'excited']
-            }
-            
-            detected_themes = []
-            for theme, keywords in themes.items():
-                if any(keyword in user_lower for keyword in keywords):
-                    detected_themes.append(theme)
-            
-            # Generate contextual response based on detected themes
-            if 'space_science' in detected_themes and 'health_limitations' in detected_themes:
-                response = "🚀 Specialized Career Analysis - Space Industry Focus:\n\n"
-                response += "While direct astronaut roles may not be accessible, your space passion and STEM background open many exciting alternatives:\n\n"
-                
-                response += "1. Aerospace Engineering\n"
-                response += "   • Design spacecraft and satellite systems\n"
-                response += "   • Work with NASA, SpaceX, or aerospace companies\n"
-                response += "   • Contribute to space exploration from Earth\n\n"
-                
-                response += "2. Mission Control Specialist\n"
-                response += "   • Guide spacecraft operations from ground\n"
-                response += "   • Critical role in space missions\n"
-                response += "   • Direct impact on space exploration\n\n"
-                
-                response += "3. Space Research Scientist\n"
-                response += "   • Analyze space data and discoveries\n"
-                response += "   • Contribute to space science knowledge\n"
-                response += "   • Work with space agencies and universities\n\n"
-                
-                response += "💡 **Your passion for space exploration can drive incredible contributions to the industry without leaving Earth!**"
-                
-                return response
-            
-            elif 'mathematics' in detected_themes and 'science' in detected_themes:
-                response = "📊 STEM Career Analysis - Mathematics & Science Focus:\n\n"
-                response += "Your strong mathematical and scientific foundation opens numerous high-impact career paths:\n\n"
-                
-                response += "1. Data Science & Analytics\n"
-                response += "   • Apply math skills to solve real-world problems\n"
-                response += "   • High demand across all industries\n"
-                response += "   • Excellent growth potential\n\n"
-                
-                response += "2. Research Scientist\n"
-                response += "   • Pursue scientific discoveries\n"
-                response += "   • Work in academia or private research\n"
-                response += "   • Contribute to scientific advancement\n\n"
-                
-                response += "3. Engineering Roles\n"
-                response += "   • Apply mathematical principles to design\n"
-                response += "   • Multiple specialization options\n"
-                response += "   • Direct impact on technology development\n\n"
-                
-                response += "💡 **Your analytical mindset and scientific curiosity are highly valued in today's tech-driven world!**"
-                
-                return response
-            
-            return None
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Mock AI response failed: {e}")
-            return None
-
-    def try_classification_api(self, user_input):
-        """Enhanced local classification without external APIs"""
-        try:
-            if logger:
-                logger.info("Using enhanced local classification system")
-            
-            # Since external APIs are not working, enhance the local system
-            return self.generate_enhanced_local_analysis(user_input)
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Local classification error: {e}")
-            return None
-
-    def generate_enhanced_local_analysis(self, user_input):
-        """Generate enhanced local analysis with AI-like insights"""
-        try:
-            user_lower = user_input.lower()
-            
-            # Advanced pattern recognition
-            career_insights = {
-                'Space Technology & Aerospace': {
-                    'triggers': ['astronaut', 'space', 'cosmos', 'astronomy', 'aerospace', 'satellite', 'rocket'],
-                    'confidence_boost': ['passion', 'dream', 'fascinated'],
-                    'insights': [
-                        "Consider aerospace engineering - designing the vehicles that explore space",
-                        "Mission control operations - guiding space missions from Earth",
-                        "Space technology development - creating instruments for space exploration",
-                        "Planetarium education - sharing space knowledge with others"
-                    ]
-                },
-                'Mathematical Sciences': {
-                    'triggers': ['math', 'mathematical', 'analytical', 'calculations', 'logic', 'problem-solving'],
-                    'confidence_boost': ['good at', 'strong', 'excel'],
-                    'insights': [
-                        "Data science combines math with practical applications",
-                        "Actuarial science applies math to risk assessment",
-                        "Operations research uses math to optimize systems",
-                        "Mathematical modeling helps solve complex problems"
-                    ]
-                },
-                'Scientific Research': {
-                    'triggers': ['science', 'research', 'discovery', 'experiment', 'study', 'investigate'],
-                    'confidence_boost': ['curious', 'passionate', 'interested'],
-                    'insights': [
-                        "Research scientist roles in academia or industry",
-                        "Laboratory work in specialized scientific fields",
-                        "Science communication - translating research for public",
-                        "Technical writing for scientific publications"
-                    ]
-                }
-            }
-            
-            # Calculate weighted scores
-            results = {}
-            for career, data in career_insights.items():
-                score = 0
-                matched_triggers = []
-                
-                # Check for trigger words
-                for trigger in data['triggers']:
-                    if trigger in user_lower:
-                        score += 2
-                        matched_triggers.append(trigger)
-                
-                # Check for confidence boosters
-                for booster in data['confidence_boost']:
-                    if booster in user_lower:
-                        score += 1
-                
-                if score > 0:
-                    results[career] = {
-                        'score': score,
-                        'triggers': matched_triggers,
-                        'insights': data['insights']
-                    }
-            
-            if results:
-                sorted_results = sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)
-                
-                response = "🤖 AI-Enhanced Local Analysis:\n\n"
-                response += "Deep analysis of your interests and background reveals:\n\n"
-                
-                for i, (career, data) in enumerate(sorted_results[:2], 1):
-                    confidence = "Very High" if data['score'] >= 4 else "High" if data['score'] >= 2 else "Medium"
-                    
-                    response += f"{i}. {career}\n"
-                    response += f"   Confidence: {confidence} (Score: {data['score']})\n"
-                    response += f"   Key Matches: {', '.join(data['triggers'])}\n"
-                    response += f"   Personalized Insights:\n"
-                    
-                    for insight in data['insights'][:3]:
-                        response += f"     • {insight}\n"
-                    response += "\n"
-                
-                response += "💡 **This analysis combines pattern recognition, sentiment analysis, and domain expertise for personalized career guidance.**"
-                
-                return response
-            
-            return None
-                
-        except Exception as e:
-            if logger:
-                logger.error(f"Enhanced local analysis failed: {e}")
-            return None
-
     def generate_smart_recommendation(self, user_input):
         """Generate intelligent recommendations based on user input analysis"""
         
@@ -693,170 +237,626 @@ class CareerRecommender(QWidget):
 
         user_lower = user_input.lower()
         
-        # Comprehensive keyword analysis - Internship Technical Achievement
-        # 35+ career domains with carefully selected keywords
+        # Enhanced text preprocessing
+        def preprocess_text(text):
+            """Enhanced text preprocessing with better normalization"""
+            # Handle contractions
+            contractions = {
+                "don't": "do not", "can't": "cannot", "won't": "will not", "shouldn't": "should not",
+                "wouldn't": "would not", "couldn't": "could not", "isn't": "is not", "aren't": "are not",
+                "wasn't": "was not", "weren't": "were not", "haven't": "have not", "hasn't": "has not",
+                "hadn't": "had not", "i'm": "i am", "you're": "you are", "he's": "he is", "she's": "she is",
+                "it's": "it is", "we're": "we are", "they're": "they are", "i've": "i have",
+                "you've": "you have", "we've": "we have", "they've": "they have", "i'll": "i will",
+                "you'll": "you will", "he'll": "he will", "she'll": "she will", "it'll": "it will",
+                "we'll": "we will", "they'll": "they will", "i'd": "i would", "you'd": "you would",
+                "he'd": "he would", "she'd": "she would", "we'd": "we would", "they'd": "they would"
+            }
+            
+            # Expand contractions
+            for contraction, expansion in contractions.items():
+                text = re.sub(r'\b' + re.escape(contraction) + r'\b', expansion, text, flags=re.IGNORECASE)
+            
+            # Normalize punctuation and spacing
+            text = re.sub(r'[.,;!?]+', ' ', text)  # Replace punctuation with spaces
+            text = re.sub(r'\s+', ' ', text)  # Normalize whitespace
+            text = text.strip()
+            
+            return text
+        
+        # Apply preprocessing
+        processed_text = preprocess_text(user_lower)
+        
+        if logger:
+            logger.info(f"[PREPROCESSING] Original: '{user_lower[:100]}...'")
+            logger.info(f"[PREPROCESSING] Processed: '{processed_text[:100]}...'")
+        
+        def detect_negation_scope(text, keyword_pos, keyword_len):
+            """Detect if a keyword is within the scope of negation - Enhanced for complex expressions"""
+            # Look for negation words before the keyword (extended range for complex phrases)
+            pre_context_start = max(0, keyword_pos - 150)  # Increased range for longer negative expressions
+            pre_context = text[pre_context_start:keyword_pos]
+            
+            # Enhanced negation indicators including complex phrases
+            negation_words = [
+                'not', 'no', 'never', 'nothing', 'nobody', 'nowhere', 'neither', 'nor',
+                'barely', 'hardly', 'scarcely', 'seldom', 'rarely', 'without',
+                # Added strong rejection phrases
+                "wouldn't", "would never", "refuse to", "opposed to", "against",
+                "can't stand", "hate", "dislike", "despise", "detest", "loathe"
+            ]
+            
+            # Special patterns for very strong negative expressions
+            strong_negative_patterns = [
+                r'wouldn\'t\s+be\s+caught\s+.*?\s+even\s+if.*?life\s+depended',
+                r'would\s+never\s+.*?\s+even\s+if',
+                r'not\s+in\s+a\s+million\s+years',
+                r'over\s+my\s+dead\s+body',
+                r'absolutely\s+refuse',
+                r'completely\s+against',
+                r'wouldn\'t\s+be\s+caught\s+\w+',  # Catches "wouldn't be caught [word]"
+                r'would\s+never\s+\w+'  # Catches "would never [word]"
+            ]
+            
+            # Check for very strong negative patterns in extended context
+            extended_context = text[max(0, keyword_pos - 200):keyword_pos + keyword_len + 50]
+            for pattern in strong_negative_patterns:
+                if re.search(pattern, extended_context, re.IGNORECASE):
+                    if logger:
+                        logger.debug(f"Strong negative pattern detected: {pattern}")
+                    return True
+            
+            # Check for negation within the scope
+            words_before = pre_context.split()[-15:]  # Increased to last 15 words before keyword
+            
+            for i, word in enumerate(words_before):
+                # Clean word for better matching
+                clean_word = re.sub(r'[^\w\']', '', word.lower())
+                
+                if any(neg_word in clean_word for neg_word in negation_words):
+                    # Check if there's a clause boundary that would break negation scope
+                    remaining_words = words_before[i+1:]
+                    clause_breakers = ['but', 'however', 'although', 'though', 'while', 'whereas', 'except', 'and']
+                    
+                    # For very strong negatives, ignore clause breakers within short range
+                    strong_negatives = ["wouldn't", "would never", "refuse", "hate", "despise"]
+                    if any(strong_neg in clean_word for strong_neg in strong_negatives):
+                        if len(remaining_words) <= 8:  # Within 8 words, negation still applies
+                            return True
+                    
+                    # If no clause breaker found, keyword is in negation scope
+                    if not any(breaker in ' '.join(remaining_words).lower() for breaker in clause_breakers):
+                        return True
+                        
+            return False
+        
+        # Comprehensive keyword analysis - Expanded to 60+ career domains
+        # Advanced keyword mapping with industry-specific terminology
         interests = {
-            'law': ['law', 'legal', 'court', 'judge', 'lawyer', 'attorney', 'justice', 'litigation', 'contract', 'rights'],
-            'healthcare': ['medicine', 'doctor', 'nurse', 'health', 'medical', 'hospital', 'patient', 'therapy', 'clinical', 'wellness'],
-            'education': ['teach', 'education', 'school', 'student', 'learning', 'curriculum', 'academic', 'training', 'professor'],
-            'engineering': ['engineering', 'engineer', 'technical', 'mechanical', 'electrical', 'civil', 'software', 'systems', 'development'],
-            'finance': ['finance', 'money', 'banking', 'investment', 'accounting', 'economics', 'financial', 'budget', 'trading'],
-            'management': ['management', 'leadership', 'team', 'project', 'organize', 'coordinate', 'supervise', 'strategy', 'executive'],
-            'agriculture': ['agriculture', 'farming', 'crops', 'livestock', 'food', 'rural', 'plant', 'harvest', 'organic'],
-            'creative': ['creative', 'art', 'design', 'artistic', 'imagination', 'visual', 'aesthetic', 'innovative', 'drawing'],
+            # Traditional Professional Fields
+            'law': ['law', 'legal', 'court', 'judge', 'lawyer', 'attorney', 'justice', 'litigation', 'contract', 'rights', 'paralegal', 'advocacy'],
+            'healthcare': ['medicine', 'doctor', 'nurse', 'health', 'medical', 'hospital', 'patient', 'therapy', 'clinical', 'wellness', 'pharmacy', 'dentistry'],
+            'education': ['teach', 'education', 'school', 'student', 'learning', 'curriculum', 'academic', 'training', 'professor', 'tutor', 'instruction'],
+            'engineering': ['engineering', 'engineer', 'technical', 'mechanical', 'electrical', 'civil', 'software', 'systems', 'development', 'design'],
+            'finance': ['finance', 'money', 'banking', 'investment', 'accounting', 'economics', 'financial', 'budget', 'trading', 'audit', 'insurance'],
+            'management': ['management', 'leadership', 'team', 'project', 'organize', 'coordinate', 'supervise', 'strategy', 'executive', 'director'],
+            
+            # Specialized Technical Fields
+            'cybersecurity': ['cybersecurity', 'security', 'hacking', 'network', 'information', 'cyber', 'protection', 'privacy', 'firewall', 'encryption'],
+            'data_science': ['data', 'analytics', 'statistics', 'machine', 'learning', 'algorithm', 'analysis', 'AI', 'artificial', 'intelligence', 'mining'],
+            'software_development': ['programming', 'coding', 'developer', 'software', 'app', 'web', 'mobile', 'frontend', 'backend', 'fullstack'],
+            'cloud_computing': ['cloud', 'AWS', 'azure', 'devops', 'infrastructure', 'deployment', 'kubernetes', 'docker', 'microservices'],
+            'blockchain': ['blockchain', 'cryptocurrency', 'bitcoin', 'ethereum', 'smart', 'contracts', 'defi', 'web3', 'crypto'],
+            'robotics': ['robotics', 'automation', 'robot', 'mechanical', 'sensors', 'actuators', 'autonomous', 'manufacturing'],
+            'aerospace': ['aerospace', 'aviation', 'pilot', 'aircraft', 'flying', 'airline', 'airport', 'flight', 'navigation', 'satellite'],
+            'biotechnology': ['biotechnology', 'biology', 'genetics', 'pharmaceutical', 'biomedical', 'life', 'molecular', 'biochemistry', 'bioengineering'],
+            
+            # Creative and Design Fields
+            'graphic_design': ['graphic', 'design', 'visual', 'creative', 'logo', 'branding', 'typography', 'illustration', 'photoshop', 'art'],
+            'web_design': ['web', 'design', 'UI', 'UX', 'user', 'interface', 'experience', 'wireframe', 'prototype', 'figma'],
+            'animation': ['animation', 'animator', '3D', '2D', 'cartoon', 'motion', 'graphics', 'maya', 'blender', 'after', 'effects', 'art'],
+            'photography': ['photography', 'photographer', 'camera', 'photo', 'portrait', 'wedding', 'commercial', 'editing', 'lightroom', 'art'],
+            'videography': ['videography', 'video', 'filming', 'cinematography', 'editing', 'premiere', 'final', 'cut', 'production'],
+            'fashion_design': ['fashion', 'design', 'clothing', 'textile', 'style', 'apparel', 'designer', 'fabric', 'trend', 'couture', 'art'],
+            'interior_design': ['interior', 'design', 'decoration', 'furniture', 'space', 'residential', 'commercial', 'aesthetics'],
+            'architecture': ['architecture', 'architect', 'building', 'construction', 'structural', 'blueprint', 'design', 'planning'],
+            'music_production': ['music', 'production', 'audio', 'sound', 'recording', 'mixing', 'mastering', 'studio', 'composer'],
+            'game_design': ['game', 'design', 'gaming', 'unity', 'unreal', 'level', 'character', 'gameplay', 'mechanics'],
+            
+            # Media and Communication
+            'journalism': ['journalism', 'writing', 'reporter', 'news', 'article', 'publish', 'editor', 'story', 'interview', 'media'],
+            'content_creation': ['content', 'creator', 'youtube', 'social', 'media', 'influencer', 'blogging', 'podcast', 'streaming'],
+            'digital_marketing': ['marketing', 'digital', 'SEO', 'social', 'media', 'advertising', 'campaign', 'brand', 'analytics'],
+            'public_relations': ['public', 'relations', 'PR', 'communication', 'reputation', 'crisis', 'management', 'press'],
+            'broadcasting': ['broadcasting', 'radio', 'television', 'TV', 'anchor', 'host', 'producer', 'live', 'streaming'],
+            'translation': ['translation', 'interpreter', 'language', 'multilingual', 'localization', 'linguistic', 'foreign'],
+            
+            # Business and Sales
+            'sales': ['sales', 'selling', 'customer', 'business', 'revenue', 'promotion', 'retail', 'commerce', 'negotiation'],
+            'consulting': ['consulting', 'consultant', 'advisory', 'strategy', 'business', 'solutions', 'analysis', 'recommendations'],
+            'entrepreneurship': ['entrepreneur', 'startup', 'business', 'owner', 'venture', 'innovation', 'risk', 'investment'],
+            'real_estate': ['real', 'estate', 'property', 'housing', 'land', 'broker', 'rental', 'investment', 'commercial'],
+            'human_resources': ['human', 'resources', 'HR', 'recruitment', 'hiring', 'employee', 'personnel', 'workplace', 'talent'],
+            'supply_chain': ['supply', 'chain', 'logistics', 'procurement', 'warehouse', 'distribution', 'inventory', 'shipping'],
+            
+            # Research and Science
             'research': ['research', 'study', 'analyze', 'investigate', 'experiment', 'data', 'scientific', 'discovery', 'analysis'],
-            'media': ['media', 'communication', 'broadcast', 'journalism', 'news', 'television', 'radio', 'digital', 'content'],
-            'public_admin': ['government', 'public', 'policy', 'administration', 'civic', 'municipal', 'politics', 'service'],
-            'sales': ['sales', 'marketing', 'customer', 'business', 'revenue', 'promotion', 'advertising', 'retail', 'commerce'],
-            'cybersecurity': ['cybersecurity', 'security', 'hacking', 'network', 'information', 'cyber', 'protection', 'privacy'],
             'psychology': ['psychology', 'mental', 'behavior', 'counseling', 'therapy', 'mind', 'emotional', 'cognitive', 'behavioral'],
+            'environmental_science': ['environment', 'environmental', 'ecology', 'conservation', 'sustainability', 'climate', 'green', 'renewable'],
+            'chemistry': ['chemistry', 'chemical', 'laboratory', 'compound', 'reaction', 'molecular', 'analytical', 'organic'],
+            'physics': ['physics', 'quantum', 'particle', 'energy', 'mechanics', 'theoretical', 'experimental', 'nuclear'],
+            'mathematics': ['mathematics', 'math', 'calculus', 'algebra', 'geometry', 'statistics', 'probability', 'equations'],
+            'astronomy': ['astronomy', 'space', 'cosmos', 'stars', 'planets', 'telescope', 'astrophysics', 'universe'],
+            'geology': ['geology', 'earth', 'rocks', 'minerals', 'geological', 'mining', 'petroleum', 'seismic'],
+            
+            # Service Industries
             'hospitality': ['hospitality', 'hotel', 'tourism', 'travel', 'restaurant', 'service', 'guest', 'vacation', 'event'],
-            'logistics': ['logistics', 'supply', 'chain', 'transportation', 'shipping', 'warehouse', 'distribution', 'delivery'],
-            'environment': ['environment', 'environmental', 'ecology', 'conservation', 'sustainability', 'climate', 'green', 'renewable'],
-            'biotech': ['biotechnology', 'biology', 'genetics', 'pharmaceutical', 'biomedical', 'life', 'molecular', 'biochemistry'],
-            'journalism': ['journalism', 'writing', 'reporter', 'news', 'article', 'publish', 'editor', 'story', 'interview'],
-            'aviation': ['aviation', 'pilot', 'aircraft', 'flying', 'aerospace', 'airline', 'airport', 'flight', 'navigation'],
-            'sports': ['sport', 'athletic', 'physical', 'exercise', 'fitness', 'competition', 'training', 'coaching', 'wellness'],
-            'social_work': ['helping', 'community', 'social', 'volunteer', 'charity', 'people', 'service', 'support', 'welfare'],
-            'music': ['music', 'song', 'instrument', 'audio', 'sound', 'musician', 'melody', 'rhythm', 'performance'],
-            'technology': ['technology', 'computer', 'coding', 'programming', 'tech', 'software', 'digital', 'IT', 'development'],
-            'construction': ['construction', 'building', 'architecture', 'structural', 'blueprint', 'contractor', 'design'],
+            'culinary': ['culinary', 'cooking', 'chef', 'kitchen', 'restaurant', 'food', 'cuisine', 'baking', 'pastry'],
+            'fitness': ['fitness', 'personal', 'trainer', 'gym', 'exercise', 'health', 'nutrition', 'wellness', 'sports', 'athletics', 'athletic'],
+            'beauty': ['beauty', 'cosmetics', 'makeup', 'skincare', 'salon', 'aesthetics', 'hair', 'styling'],
+            'childcare': ['childcare', 'children', 'daycare', 'nanny', 'early', 'childhood', 'development', 'kids'],
+            
+            # Government and Public Service
+            'public_administration': ['government', 'public', 'policy', 'administration', 'civic', 'municipal', 'politics', 'service'],
+            'law_enforcement': ['police', 'law', 'enforcement', 'security', 'detective', 'investigation', 'criminal', 'justice'],
+            'firefighting': ['firefighter', 'fire', 'emergency', 'rescue', 'paramedic', 'first', 'responder', 'safety'],
+            'social_work': ['social', 'work', 'helping', 'community', 'volunteer', 'charity', 'people', 'service', 'support', 'welfare'],
+            
+            # Agriculture and Nature
+            'agriculture': ['agriculture', 'farming', 'crops', 'livestock', 'food', 'rural', 'plant', 'harvest', 'organic'],
+            'forestry': ['forestry', 'forest', 'trees', 'conservation', 'wildlife', 'ranger', 'natural', 'resources'],
+            'veterinary': ['veterinary', 'animal', 'pet', 'wildlife', 'zoo', 'veterinarian', 'animal', 'care'],
+            
+            # Transportation and Logistics
             'automotive': ['automotive', 'car', 'vehicle', 'mechanic', 'transportation', 'driving', 'engine', 'repair'],
-            'gaming': ['gaming', 'game', 'entertainment', 'video', 'interactive', 'developer', 'player', 'design'],
-            'real_estate': ['real', 'estate', 'property', 'housing', 'land', 'broker', 'rental', 'investment'],
-            'fashion': ['fashion', 'clothing', 'textile', 'style', 'apparel', 'designer', 'fabric', 'trend'],
-            'data_science': ['data', 'analytics', 'statistics', 'machine', 'learning', 'algorithm', 'analysis', 'AI'],
-            'hr': ['human', 'resources', 'recruitment', 'hiring', 'employee', 'personnel', 'workplace', 'talent'],
-            'nonprofit': ['nonprofit', 'NGO', 'charity', 'foundation', 'cause', 'mission', 'humanitarian', 'advocacy'],
-            'international': ['international', 'global', 'foreign', 'diplomatic', 'relations', 'world', 'cultural', 'embassy']
+            'maritime': ['maritime', 'shipping', 'ocean', 'naval', 'port', 'cargo', 'marine', 'logistics'],
+            'railway': ['railway', 'train', 'transportation', 'locomotive', 'rail', 'transit', 'conductor'],
+            
+            # Emerging Fields
+            'sustainability': ['sustainability', 'renewable', 'energy', 'solar', 'wind', 'green', 'environmental', 'carbon'],
+            'virtual_reality': ['virtual', 'reality', 'VR', 'AR', 'augmented', 'immersive', 'simulation', 'metaverse'],
+            'nanotechnology': ['nanotechnology', 'nano', 'microscopic', 'molecular', 'materials', 'science'],
+            'space_technology': ['space', 'technology', 'satellite', 'rocket', 'mars', 'exploration', 'astronaut'],
+            
+            # Arts and Entertainment
+            'performing_arts': ['performing', 'arts', 'theater', 'acting', 'drama', 'stage', 'performance', 'actor', 'art'],
+            'dance': ['dance', 'ballet', 'choreography', 'movement', 'rhythm', 'performance', 'instructor'],
+            'literature': ['literature', 'writing', 'author', 'novel', 'poetry', 'creative', 'writing', 'publishing'],
+            'film_production': ['film', 'movie', 'cinema', 'director', 'producer', 'screenplay', 'editing', 'camera']
         }
         
-        # Career mapping - Professional naming convention
+        # Comprehensive career mapping - 60+ Professional domains
         career_mapping = {
+            # Traditional Professional Fields
             'law': 'Law & Legal Services',
             'healthcare': 'Healthcare & Medicine',
             'education': 'Education & Training',
             'engineering': 'Engineering & Technology',
             'finance': 'Finance & Banking',
             'management': 'Management & Leadership',
-            'agriculture': 'Agriculture & Food Science',
-            'creative': 'Creative Arts & Design',
-            'research': 'Scientific Research',
-            'media': 'Media & Communication',
-            'public_admin': 'Public Administration',
-            'sales': 'Sales & Marketing',
-            'cybersecurity': 'Cybersecurity & IT',
-            'psychology': 'Psychology & Counseling',
-            'hospitality': 'Hospitality & Tourism',
-            'logistics': 'Logistics & Supply Chain',
-            'environment': 'Environmental Science',
-            'biotech': 'Biotechnology & Life Sciences',
-            'journalism': 'Journalism & Writing',
-            'aviation': 'Aviation & Aerospace',
-            'sports': 'Sports & Fitness',
-            'social_work': 'Social Work & Community Service',
-            'music': 'Music & Audio Production',
-            'technology': 'Data Science & Analytics',
-            'construction': 'Architecture & Construction',
-            'automotive': 'Automotive & Transportation',
-            'gaming': 'Gaming & Entertainment',
-            'real_estate': 'Real Estate & Property',
-            'fashion': 'Fashion & Textile',
+            
+            # Specialized Technical Fields
+            'cybersecurity': 'Cybersecurity & Information Security',
             'data_science': 'Data Science & Analytics',
-            'hr': 'Human Resources',
-            'nonprofit': 'Non-Profit & NGO Work',
-            'international': 'International Relations'
+            'software_development': 'Software Development & Programming',
+            'cloud_computing': 'Cloud Computing & DevOps',
+            'blockchain': 'Blockchain & Cryptocurrency',
+            'robotics': 'Robotics & Automation',
+            'aerospace': 'Aerospace & Aviation',
+            'biotechnology': 'Biotechnology & Life Sciences',
+            
+            # Creative and Design Fields
+            'graphic_design': 'Graphic Design & Visual Arts',
+            'web_design': 'Web Design & User Experience',
+            'animation': 'Animation & Motion Graphics',
+            'photography': 'Photography & Visual Media',
+            'videography': 'Videography & Film Production',
+            'fashion_design': 'Fashion Design & Textile Arts',
+            'interior_design': 'Interior Design & Space Planning',
+            'architecture': 'Architecture & Building Design',
+            'music_production': 'Music Production & Audio Engineering',
+            'game_design': 'Game Design & Development',
+            
+            # Media and Communication
+            'journalism': 'Journalism & News Media',
+            'content_creation': 'Content Creation & Digital Media',
+            'digital_marketing': 'Digital Marketing & SEO',
+            'public_relations': 'Public Relations & Communications',
+            'broadcasting': 'Broadcasting & Media Production',
+            'translation': 'Translation & Linguistics',
+            
+            # Business and Sales
+            'sales': 'Sales & Business Development',
+            'consulting': 'Business Consulting & Strategy',
+            'entrepreneurship': 'Entrepreneurship & Innovation',
+            'real_estate': 'Real Estate & Property Management',
+            'human_resources': 'Human Resources & Talent Management',
+            'supply_chain': 'Supply Chain & Logistics Management',
+            
+            # Research and Science
+            'research': 'Scientific Research & Development',
+            'psychology': 'Psychology & Mental Health',
+            'environmental_science': 'Environmental Science & Sustainability',
+            'chemistry': 'Chemistry & Chemical Sciences',
+            'physics': 'Physics & Physical Sciences',
+            'mathematics': 'Mathematics & Applied Math',
+            'astronomy': 'Astronomy & Space Sciences',
+            'geology': 'Geology & Earth Sciences',
+            
+            # Service Industries
+            'hospitality': 'Hospitality & Tourism Management',
+            'culinary': 'Culinary Arts & Food Service',
+            'fitness': 'Fitness & Personal Training',
+            'beauty': 'Beauty & Cosmetic Services',
+            'childcare': 'Childcare & Early Development',
+            
+            # Government and Public Service
+            'public_administration': 'Public Administration & Government',
+            'law_enforcement': 'Law Enforcement & Criminal Justice',
+            'firefighting': 'Emergency Services & Public Safety',
+            'social_work': 'Social Work & Community Services',
+            
+            # Agriculture and Nature
+            'agriculture': 'Agriculture & Food Production',
+            'forestry': 'Forestry & Natural Resource Management',
+            'veterinary': 'Veterinary Medicine & Animal Care',
+            
+            # Transportation and Logistics
+            'automotive': 'Automotive & Transportation',
+            'maritime': 'Maritime & Shipping Industry',
+            'railway': 'Railway & Transit Systems',
+            
+            # Emerging Fields
+            'sustainability': 'Sustainability & Renewable Energy',
+            'virtual_reality': 'Virtual Reality & Immersive Technology',
+            'nanotechnology': 'Nanotechnology & Materials Science',
+            'space_technology': 'Space Technology & Exploration',
+            
+            # Arts and Entertainment
+            'performing_arts': 'Performing Arts & Theater',
+            'dance': 'Dance & Movement Arts',
+            'literature': 'Literature & Creative Writing',
+            'film_production': 'Film Production & Cinema'
         }
         
-        # Advanced sentiment analysis - Internship Innovation
-        negative_phrases = [
-            'not good at', 'bad at', 'terrible at', 'not that good', 'struggle with', 
-            'hate', 'dislike', 'avoid', 'weak in', 'poor at', 'difficulty with'
+        # Advanced sentiment analysis - Enhanced for sarcasm, irony, and negation
+        negative_patterns = [
+            # Direct negation patterns
+            r'\bnot\s+good\s+at\b', r'\bbad\s+at\b', r'\bterrible\s+at\b', r'\bnot\s+that\s+good\b',
+            r'\bstruggle\s+with\b', r'\bhate\b', r'\bdislike\b', r'\bavoid\b', r'\bweak\s+in\b',
+            r'\bpoor\s+at\b', r'\bdifficulty\s+with\b', r"\bcan't\b", r"\bdon't\b", r'\bunable\b',
+            
+            # Very strong rejection patterns (highest priority)
+            r'\bwouldn\'t\s+be\s+caught\s+.*\s+even\s+if\s+my\s+life\s+depended\s+on\s+it\b',
+            r'\bwould\s+never\s+.*\s+even\s+if\b', r'\bwouldn\'t\s+.*\s+if\s+you\s+paid\s+me\b',
+            r'\bover\s+my\s+dead\s+body\b', r'\bnot\s+in\s+a\s+million\s+years\b',
+            r'\bwild\s+horses\s+couldn\'t\s+drag\s+me\b', r'\babsolutely\s+refuse\b',
+            
+            # Strong negative expressions
+            r'\bwouldn\'t\s+be\s+caught\b', r'\bwould\s+never\b', r'\bcompletely\s+against\b',
+            r'\btotally\s+opposed\s+to\b', r'\bstrongly\s+dislike\b', r'\bcan\'t\s+stand\b',
+            r'\bdetest\b', r'\babhor\b', r'\bloathe\b', r'\bdespise\b',
+            
+            # Sarcasm indicators
+            r'\byeah\s+right\b', r'\bsure\b.*\bnot\b', r'\bobviously\s+not\b', r'\bof\s+course\s+not\b',
+            r'\bgreat\b.*\bnot\b', r'\blove\b.*\bnot\b', r'\bperfect\b.*\bnot\b',
+            
+            # Irony and indirect negation
+            r'\bif\s+only\b', r'\bwish\s+i\s+could\b', r'\bin\s+my\s+dreams\b', r'\bnever\s+gonna\b',
+            r'\bimpossible\s+for\s+me\b', r'\bnot\s+my\s+thing\b', r'\bnot\s+for\s+me\b',
+            
+            # Intensity modifiers with negative context
+            r'\babsolutely\s+not\b', r'\bdefinitely\s+not\b', r'\btotally\s+not\b',
+            r'\bcompletely\s+hopeless\b', r'\butterly\s+useless\b'
         ]
         
-        positive_indicators = [
-            'love', 'enjoy', 'passionate', 'good at', 'excel', 'talented', 'skilled',
-            'interested', 'fascinated', 'excited', 'strong', 'proficient'
+        positive_patterns = [
+            # Strong positive expressions
+            r'\blove\b', r'\benjoy\b', r'\bpassionate\s+about\b', r'\bgood\s+at\b', r'\bexcel\s+at\b',
+            r'\btalented\s+at\b', r'\bskilled\s+in\b', r'\binterested\s+in\b', r'\bfascinated\s+by\b',
+            r'\bexcited\s+about\b', r'\bstrong\s+in\b', r'\bproficient\s+in\b', r'\bgreat\s+at\b',
+            
+            # Enthusiasm markers
+            r'\badore\b', r'\babsolutely\s+love\b', r'\breally\s+enjoy\b', r'\btotally\s+into\b',
+            r'\bcrazy\s+about\b', r'\bobsessed\s+with\b', r'\bcan\'t\s+get\s+enough\b',
+            
+            # Achievement indicators
+            r'\baccomplished\b', r'\bsuccessful\b', r'\bproud\s+of\b', r'\bmastered\b',
+            r'\bexpertise\b', r'\bspecialize\b', r'\bnatural\s+at\b'
         ]
         
-        # Intelligent scoring algorithm
+        # Contextual modifiers
+        doubt_indicators = [
+            r'\bi\s+think\b', r'\bmaybe\b', r'\bperhaps\b', r'\bpossibly\b', r'\bkind\s+of\b',
+            r'\bsort\s+of\b', r'\bi\s+guess\b', r'\bprobably\b', r'\bsomewhat\b'
+        ]
+        
+        confidence_boosters = [
+            r'\babsolutely\b', r'\bdefinitely\b', r'\bcertainly\b', r'\btotally\b',
+            r'\bcompletely\b', r'\breally\b', r'\btruly\b', r'\bextremely\b'
+        ]
+
+        def analyze_sentiment(text, keyword_pos, keyword_len):
+            """Enhanced sentiment analysis with advanced negation detection"""
+            # Get extended context around the keyword
+            context_start = max(0, keyword_pos - 100)  # Increased context window
+            context_end = min(len(text), keyword_pos + keyword_len + 100)
+            context = text[context_start:context_end]
+            
+            # Get even broader context for very strong negative patterns  
+            extended_context = text[max(0, keyword_pos - 300):keyword_pos + keyword_len + 200]
+            
+            sentiment_score = 1.0  # Neutral baseline
+            
+            # Find if there's a clause breaker between strong negatives and keyword
+            keyword_text = text[keyword_pos:keyword_pos + keyword_len]
+            
+            # Find if there's a clause breaker between start of extended context and keyword
+            pre_keyword_text = text[max(0, keyword_pos - 300):keyword_pos]
+            clause_breakers = ['but', 'however', 'although', 'though', 'while', 'whereas', 'except']
+            
+            # Find the last clause breaker before the keyword in the full text
+            last_clause_breaker_absolute_pos = -1
+            for breaker in clause_breakers:
+                # Search in the range from 300 chars before keyword to keyword position
+                search_start = max(0, keyword_pos - 300)
+                search_text = text[search_start:keyword_pos]
+                breaker_matches = list(re.finditer(rf'\b{breaker}\b', search_text, re.IGNORECASE))
+                if breaker_matches:
+                    # Convert relative position to absolute position in the text
+                    absolute_pos = search_start + breaker_matches[-1].end()
+                    last_clause_breaker_absolute_pos = max(last_clause_breaker_absolute_pos, absolute_pos)
+            
+            # If there's a clause breaker, only consider context after it for strong negatives
+            if last_clause_breaker_absolute_pos > -1:
+                # Start context from after the clause breaker
+                clause_adjusted_context = text[last_clause_breaker_absolute_pos:keyword_pos + keyword_len + 200]
+            else:
+                clause_adjusted_context = extended_context
+            
+            # Check for negation scope first
+            if detect_negation_scope(text, keyword_pos, keyword_len):
+                sentiment_score -= 2.5  # Increased negation penalty
+                if logger:
+                    logger.debug(f"Negation scope detected for keyword at position {keyword_pos}")
+            
+            # Special check for "wouldn't be caught [keyword]" pattern (with and without apostrophe)
+            # Use clause-adjusted context for this check
+            wouldnt_patterns = [
+                rf'wouldn\'t\s+be\s+caught\s+.*?\b{re.escape(keyword_text)}\b',
+                rf'wouldnt\s+be\s+caught\s+.*?\b{re.escape(keyword_text)}\b',
+                rf'wouldn\'t\s+be\s+caught\s+{re.escape(keyword_text)}\b',
+                rf'wouldnt\s+be\s+caught\s+{re.escape(keyword_text)}\b'
+            ]
+            
+            for pattern in wouldnt_patterns:
+                if re.search(pattern, clause_adjusted_context, re.IGNORECASE):
+                    sentiment_score -= 10.0  # Massive penalty for this specific pattern
+                    if logger:
+                        logger.debug(f"'Wouldn't be caught [keyword]' pattern detected for: {keyword_text} using pattern: {pattern}")
+                    break
+            
+            # Check for very strong negative patterns first (highest priority)
+            # Use clause-adjusted context for this check
+            very_strong_negatives = [
+                rf'wouldn\'t\s+be\s+caught\s+.*?\b{re.escape(keyword_text)}\b.*?even\s+if.*?life\s+depended',
+                rf'wouldnt\s+be\s+caught\s+.*?\b{re.escape(keyword_text)}\b.*?even\s+if.*?life\s+depended',
+                rf'would\s+never\s+.*?\b{re.escape(keyword_text)}\b.*?\s+even\s+if',
+                rf'wouldn\'t\s+.*?\b{re.escape(keyword_text)}\b.*?\s+if\s+you\s+paid\s+me',
+                rf'wouldnt\s+.*?\b{re.escape(keyword_text)}\b.*?\s+if\s+you\s+paid\s+me',
+                rf'over\s+my\s+dead\s+body.*?\b{re.escape(keyword_text)}\b',
+                rf'not\s+in\s+a\s+million\s+years.*?\b{re.escape(keyword_text)}\b',
+                rf'absolutely\s+refuse.*?\b{re.escape(keyword_text)}\b',
+                rf'completely\s+against.*?\b{re.escape(keyword_text)}\b',
+                rf'wouldn\'t\s+be\s+caught\s+\b{re.escape(keyword_text)}\b',  # Direct pattern
+                rf'wouldnt\s+be\s+caught\s+\b{re.escape(keyword_text)}\b',  # Direct pattern without apostrophe
+            ]
+            
+            for pattern in very_strong_negatives:
+                if re.search(pattern, clause_adjusted_context, re.IGNORECASE):
+                    sentiment_score -= 10.0  # Massive penalty for very strong rejection
+                    if logger:
+                        logger.debug(f"Very strong negative pattern found: {pattern} for keyword: {keyword_text}")
+            
+            # Check for strong negative patterns
+            strong_negatives = [
+                rf'would\s+never\s+\b{re.escape(keyword_text)}\b',  # "would never [keyword]" 
+                rf'hate\s+\b{re.escape(keyword_text)}\b', rf'despise\s+\b{re.escape(keyword_text)}\b',
+                rf'can\'t\s+stand\s+\b{re.escape(keyword_text)}\b', rf'detest\s+\b{re.escape(keyword_text)}\b'
+            ]
+            
+            for pattern in strong_negatives:
+                if re.search(pattern, clause_adjusted_context, re.IGNORECASE):
+                    sentiment_score -= 8.0  # Very strong negative penalty
+                    if logger:
+                        logger.debug(f"Strong negative pattern found: {pattern} for keyword: {keyword_text}")
+            
+            # Check for regular negative patterns using regex
+            for pattern in negative_patterns:
+                if re.search(pattern, context, re.IGNORECASE):
+                    sentiment_score -= 1.5  # Increased from 1.2
+                    if logger:
+                        logger.debug(f"Negative pattern found: {pattern} in context: {context}")
+            
+            # Check for positive patterns
+            for pattern in positive_patterns:
+                if re.search(pattern, context, re.IGNORECASE):
+                    sentiment_score += 0.9
+                    if logger:
+                        logger.debug(f"Positive pattern found: {pattern} in context: {context}")
+            
+            # Apply doubt modifiers
+            for pattern in doubt_indicators:
+                if re.search(pattern, context, re.IGNORECASE):
+                    sentiment_score *= 0.6
+                    if logger:
+                        logger.debug(f"Doubt indicator found: {pattern}")
+            
+            # Apply confidence boosters
+            for pattern in confidence_boosters:
+                if re.search(pattern, context, re.IGNORECASE):
+                    sentiment_score *= 1.4
+                    if logger:
+                        logger.debug(f"Confidence booster found: {pattern}")
+            
+            # Enhanced sarcasm detection
+            sarcasm_patterns = [
+                r'\byeah\s+right\b', r'\bsure\s+thing\b', r'\bof\s+course\b.*\bnot\b',
+                r'\bobviously\b.*\bnot\b', r'\btotally\b.*\bnot\b'
+            ]
+            
+            for pattern in sarcasm_patterns:
+                if re.search(pattern, context, re.IGNORECASE):
+                    sentiment_score -= 2.5  # Increased sarcasm penalty
+                    if logger:
+                        logger.debug(f"Sarcasm detected: {pattern}")
+            
+            # Ensure score can go negative for strong rejections
+            return max(-15.0, sentiment_score)  # Allow very strong negative scores
+        
+        # Intelligent scoring algorithm with enhanced text processing
         interest_scores = {}
         total_matches = 0
         
         for category, keywords in interests.items():
             score = 0
-            positive_score = 0  # Track positive sentiment boost
-            negative_score = 0
+            detailed_matches = []
             
             for keyword in keywords:
-                if keyword in user_lower:
-                    # Check for negative context
-                    keyword_pos = user_lower.find(keyword)
-                    context_start = max(0, keyword_pos - 40)
-                    context_end = min(len(user_lower), keyword_pos + len(keyword) + 40)
-                    context = user_lower[context_start:context_end]
-                    
-                    # Negative sentiment detection
-                    if any(neg in context for neg in negative_phrases):
-                        negative_score += 2
-                        logger.debug(f"Negative context detected in: {context}")
-                    else:
-                        sentiment_bonus = 2 if any(pos in context for pos in positive_indicators) else 0
-                        score += 1 + sentiment_bonus
-                        total_matches += 1
-                        logger.debug(f"Scored keyword '{keyword}' with +{1 + sentiment_bonus} (context: {context})")
-
-                logger.debug(f"Matched keyword '{keyword}' in category '{category}'")
+                # Search for whole word matches using regex with word boundaries
+                original_match = re.search(rf'\b{re.escape(keyword)}\b', user_lower)
+                processed_match = re.search(rf'\b{re.escape(keyword)}\b', processed_text)
                 
+                if original_match or processed_match:
+                    # Use the position from original text for context analysis
+                    keyword_pos = original_match.start() if original_match else processed_match.start()
+                    
+                    # Apply enhanced sentiment analysis
+                    sentiment_score = analyze_sentiment(user_lower, keyword_pos, len(keyword))
+                    
+                    # Enhanced keyword scoring with frequency consideration
+                    frequency_bonus = 1.0
+                    
+                    # Count multiple occurrences using word boundaries
+                    keyword_matches = re.findall(rf'\b{re.escape(keyword)}\b', user_lower)
+                    keyword_count = len(keyword_matches)
+                    if keyword_count > 1:
+                        frequency_bonus = 1.0 + (keyword_count - 1) * 0.3  # Diminishing returns
+                    
+                    # Calculate final keyword score
+                    keyword_score = sentiment_score * frequency_bonus
+                    score += keyword_score
+                    total_matches += 1
+                    
+                    detailed_matches.append({
+                        'keyword': keyword,
+                        'sentiment': sentiment_score,
+                        'frequency': keyword_count,
+                        'score': keyword_score
+                    })
+                    
+                    if logger:
+                        logger.debug(f"Category: {category}, Keyword: '{keyword}', "
+                                   f"Sentiment: {sentiment_score:.2f}, Frequency: {keyword_count}, "
+                                   f"Final Score: {keyword_score:.2f}")
             
-            # Final score calculation with negative sentiment filtering
-            final_score = max(0, score - negative_score)
-            if final_score > 0:
-                interest_scores[category] = final_score
+            # Store results if we have matches
+            if score > 0:
+                interest_scores[category] = {
+                    'total_score': score,
+                    'matches': detailed_matches,
+                    'avg_sentiment': score / len(detailed_matches) if detailed_matches else 0,
+                    'diversity_score': len(detailed_matches)  # Number of different keywords matched
+                }
             
-            logger.debug(f"[{category}] final_score={final_score}, score={score}, neg={negative_score}, pos={positive_score}")
+            if logger:
+                logger.debug(f"[{category}] total_score={score:.2f}, matches={len(detailed_matches)}")
         
-        # If very few matches found, ask for more details
+        # Enhanced filtering with diversity consideration
         if total_matches < 3 or len(interest_scores) < 2:
             return self.generate_more_details_request(user_input)
         
-        # Generate top recommendations
-        sorted_interests = sorted(interest_scores.items(), key=lambda x: x[1], reverse=True)
+        # Filter out categories with negative sentiment (indicating rejection)
+        filtered_scores = {}
+        for category, data in interest_scores.items():
+            # Only include categories with positive average sentiment
+            if data['avg_sentiment'] > 0:
+                filtered_scores[category] = data
+            elif logger:
+                logger.info(f"Filtering out {category} due to negative sentiment: {data['avg_sentiment']:.2f}")
+        
+        # Generate top recommendations with enhanced analysis
+        sorted_interests = sorted(filtered_scores.items(), key=lambda x: x[1]['total_score'], reverse=True)
         
         recommendations = []
-        for category, score in sorted_interests[:5]:  # Top 5 for diversity
+        for category, data in sorted_interests[:6]:  # Top 6 for better diversity
             if category in career_mapping:
                 career_name = career_mapping[category]
-                # Dynamic confidence scoring
-                if score >= 4:
+                total_score = data['total_score']
+                avg_sentiment = data['avg_sentiment']
+                match_count = len(data['matches'])
+                
+                # Enhanced confidence scoring
+                if total_score >= 5.0 and avg_sentiment >= 1.2:
                     confidence = 'Very High'
-                elif score >= 3:
+                elif total_score >= 3.0 and avg_sentiment >= 1.0:
                     confidence = 'High'
-                elif score >= 2:
+                elif total_score >= 2.0 and avg_sentiment >= 0.8:
                     confidence = 'Medium'
+                elif total_score >= 1.0:
+                    confidence = 'Moderate'
                 else:
                     confidence = 'Low'
+                
+                # Generate detailed reasoning
+                top_keywords = [match['keyword'] for match in sorted(data['matches'], 
+                                                                   key=lambda x: x['score'], reverse=True)[:3]]
+                
+                sentiment_desc = "strong positive indicators" if avg_sentiment >= 1.2 else \
+                               "positive alignment" if avg_sentiment >= 1.0 else \
+                               "moderate interest signals" if avg_sentiment >= 0.8 else \
+                               "basic interest indicators"
+                
+                reason = (f"Detected {match_count} relevant career indicators with {sentiment_desc}. "
+                         f"Top matches: {', '.join(top_keywords)}. Advanced sentiment analysis "
+                         f"reveals genuine interest pattern (sentiment score: {avg_sentiment:.2f}).")
                 
                 recommendations.append({
                     'title': career_name,
                     'confidence': confidence,
-                    'score': score,
-                    'reason': f"Strong alignment detected with {score} relevant interest indicators. This field matches your expressed preferences and demonstrated strengths."
+                    'score': total_score,
+                    'sentiment': avg_sentiment,
+                    'reason': reason,
+                    'match_count': match_count
                 })
         
-        # If still no good recommendations, ask for more details
-        if not recommendations or all(rec['score'] <= 1 for rec in recommendations):
+        # Enhanced filtering for quality recommendations - exclude negative sentiments
+        quality_recommendations = [rec for rec in recommendations 
+                                 if rec['score'] >= 1.0 and rec['sentiment'] >= 0.5]  # Higher sentiment threshold
+        
+        if not quality_recommendations:
             return self.generate_more_details_request(user_input)
         
-        # Professional formatting
-        result = "🧠 Smart Analysis Recommendations:\n\n"
+        # Professional formatting with enhanced details
+        result = "🧠 Advanced Offline Analysis Results:\n\n"
+        result += "✨ Using sophisticated sentiment analysis, pattern recognition, and linguistic processing:\n\n"
         
-        for i, rec in enumerate(recommendations[:3], 1):
-            result += f"{i}. {rec['title']}\n"
-            result += f"   Confidence: {rec['confidence']}\n"
-            result += f"   Reason: {rec['reason']}\n\n"
+        for i, rec in enumerate(quality_recommendations[:4], 1):  # Top 4 quality matches
+            confidence_emoji = "🎯" if rec['confidence'] == 'Very High' else \
+                             "⭐" if rec['confidence'] == 'High' else \
+                             "✅" if rec['confidence'] == 'Medium' else "💡"
+            
+            result += f"{confidence_emoji} {i}. {rec['title']}\n"
+            result += f"   Confidence Level: {rec['confidence']} (Score: {rec['score']:.1f}, Sentiment: {rec['sentiment']:.2f})\n"
+            result += f"   Analysis: {rec['reason']}\n"
+            result += f"   Pattern Strength: {rec['match_count']} keyword matches with contextual sentiment validation\n\n"
         
-        result += "💡 **For more accurate results, provide more detailed information about your interests, skills, and preferences.**"
+        result += "� **Analysis Features:**\n"
+        result += "• Advanced sentiment analysis detecting sarcasm, irony, and negation\n"
+        result += "• 60+ career domain coverage with specialized keyword recognition\n"
+        result += "• Contextual understanding of positive/negative expressions\n"
+        result += "• Multi-layered confidence scoring based on linguistic patterns\n\n"
+        result += "💡 **Results are based on sophisticated offline NLP processing - no internet required!**"
         
         return result
 
@@ -885,31 +885,14 @@ class CareerRecommender(QWidget):
                                         "hobbies, and strengths for accurate AI analysis.")
                 return
 
-            self.result_label.setText("🔄 Initializing AI analysis systems...\n\n⏳ Processing your information...")
+            self.result_label.setText("🔄 Analyzing your profile with advanced pattern recognition...\n\n⏳ Processing linguistic patterns and sentiment...")
             QApplication.processEvents()
 
-            if self.use_cloud_checkbox.isChecked():
-                if logger:
-                    logger.info("Using cloud AI analysis")
-                
-                self.result_label.setText("🌐 Processing with advanced cloud AI models...\n\n🔄 This may take 10-30 seconds for optimal results...")
-                QApplication.processEvents()
-                
-                cloud_result = self.get_cloud_recommendation(user_input)
-                
-                if cloud_result and len(cloud_result.strip()) > 10:
-                    self.result_label.setText(cloud_result)
-                else:
-                    if logger:
-                        logger.info("Cloud AI failed, falling back to smart analysis")
-                    
-                    self.result_label.setText("⚠️ Cloud AI services temporarily unavailable\n\n🧠 Switching to Smart Analysis Engine...")
-                    QApplication.processEvents()
-                    smart_result = self.generate_smart_recommendation(user_input)
-                    self.result_label.setText(smart_result)
-            else:
-                smart_result = self.generate_smart_recommendation(user_input)
-                self.result_label.setText(smart_result)
+            if logger:
+                logger.info("Using offline smart analysis")
+            
+            smart_result = self.generate_smart_recommendation(user_input)
+            self.result_label.setText(smart_result)
                 
         except Exception as e:
             if logger:
