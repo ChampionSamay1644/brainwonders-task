@@ -664,7 +664,7 @@ Based on this profile, I recommend these careers:
                     'title': career_name,
                     'confidence': confidence,
                     'score': score,
-                    'reason': f"Strong alignment detected with {score} relevant keywords. {career_descriptions.get(career_name, 'Career matches your interests.')}
+                    'reason': f"Strong alignment detected with {score} relevant keywords. {career_descriptions.get(career_name, 'Career matches your interests.')}"
                 })
         
         # If still no good recommendations, ask for more details
